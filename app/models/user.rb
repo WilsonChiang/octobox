@@ -14,12 +14,23 @@ class User < ApplicationRecord
   validates :github_login, presence: true
   validates :refresh_interval, numericality: {
     only_integer: true,
-    allow_blank: false,
+    allow_blank: true,
     greater_than_or_equal_to: 0,
     less_than_or_equal_to: 86_400_000,
     message: ERRORS[:refresh_interval_size][1]
   }
   validate :personal_access_token_validator
+
+  def refresh_interval=(val)
+    val = nil if 0 == val
+    super(val)
+  end
+
+  # For users who had zero values set before 20170111185505_allow_null_for_last_synced_at_in_users.rb
+  # We want their zeros treated like nils
+  def refresh_interval
+    0 == super ? nil : super
+  end
 
   def self.find_by_auth_hash(auth_hash)
     User.find_by(github_id: auth_hash['uid'])
@@ -36,7 +47,12 @@ class User < ApplicationRecord
   end
 
   def sync_notifications
-    Notification.download(self)
+    download_service.download
+    Rails.logger.info("\n\n\033[32m[#{Time.now}] INFO -- #{github_login} synced their notifications\033[0m\n\n")
+  end
+
+  def download_service
+    @download_service ||= DownloadService.new(self)
   end
 
   def github_client
@@ -47,14 +63,14 @@ class User < ApplicationRecord
   end
 
   def github_avatar_url
-    domain = ENV.fetch('GITHUB_DOMAIN', 'https://github.com')
-    "#{domain}/#{github_login}.png"
+    "#{Octobox.config.github_domain}/#{github_login}.png"
   end
 
   # Use the greater of the system minimum or the user's setting
   def effective_refresh_interval
-    return 0 if [Octobox.minimum_refresh_interval, refresh_interval].include?(0)
-    [Octobox.minimum_refresh_interval * 60_000, refresh_interval].max
+    if Octobox.refresh_interval_enabled? && refresh_interval
+      [Octobox.config.minimum_refresh_interval * 60_000, refresh_interval].max
+    end
   end
 
   def effective_access_token

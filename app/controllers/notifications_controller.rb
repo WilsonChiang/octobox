@@ -2,7 +2,7 @@
 class NotificationsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index]
   before_action :render_home_page_unless_authenticated, only: [:index]
-  before_action :find_notification, only: [:archive, :unarchive, :star]
+  before_action :find_notification, only: [:archive, :unarchive, :star, :mark_read]
 
   def index
     scope    = current_user.notifications
@@ -31,8 +31,36 @@ class NotificationsController < ApplicationController
     @notifications = scope.newest.page(page).per(per_page)
   end
 
+  def unread_count
+    scope = current_user.notifications
+    count = scope.inbox.distinct.group(:unread).count.fetch(true){ 0 }
+    render json: { 'count': count }
+  end
+  
+  def mute_selected
+    notifications = current_user.notifications.where(id: params[:id])
+    notifications.each do |notification|
+      notification.mute
+      notification.update archived: true
+    end
+    head :ok
+  end
+
   def archive_selected
     current_user.notifications.where(id: params[:id]).update_all archived: params[:value]
+    head :ok
+  end
+
+  def mark_read_selected
+    notifications = current_user.notifications.where(id: params[:id])
+    notifications.each do |notification|
+      notification.mark_read(update_github: true)
+    end
+    head :ok
+  end
+
+  def mark_read
+    @notification.update_columns unread: false
     head :ok
   end
 

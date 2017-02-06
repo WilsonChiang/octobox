@@ -1,4 +1,4 @@
-<tr class='notification <%= notification.unread ? 'active' : '' %>'>
+<tr id='notification-<%= notification.id %>' class='notification <%= notification.unread ? 'active' : '' %>'>
   <td class='notification-checkbox'>
     <%= check_box_tag(
         '',
@@ -16,7 +16,7 @@
     <%= octicon notification_icon(notification.subject_type), :height => 16 %>
   </td>
   <td class='notification-subject'>
-    <%= link_to notification.subject_title, notification.web_url, target: '_blank', class: 'link' %>
+    <%= link_to notification.subject_title, notification.web_url, target: '_blank', class: 'link', onclick: "markRead(#{notification.id})" %>
   </td>
   <% unless params[:repo].present? %>
   <td class='notification-repo'>
@@ -26,9 +26,7 @@
   </td>
   <% end %>
   <td class='notification-reason'>
-    <span class='label label-<%= reason_label(notification.reason) %>'>
-      <%= notification.reason.humanize %>
-    </span>
+    <%= link_to notification.reason.humanize, root_path(filtered_params(reason: notification.reason)), class: "label label-#{reason_label(notification.reason)}" %>
   </td>
   <td class='notification-date'>
     <small class='text-muted'>

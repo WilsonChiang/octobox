@@ -4,7 +4,9 @@ module NotificationsHelper
     'author'       => 'success',
     'state_change' => 'info',
     'mention'      => 'warning',
-    'assign'       => 'danger'
+    'assign'       => 'danger',
+    'subscribed'   => 'subscribed',
+    'team_mention' => 'team_mention'
   }.freeze
 
   SUBJECT_TYPES = {
@@ -34,7 +36,7 @@ module NotificationsHelper
   end
 
   def bucket_param_keys
-    [:archived, :starred]
+    [:archive, :starred]
   end
 
   def filter_param_keys
@@ -49,11 +51,22 @@ module NotificationsHelper
     filters.merge(override)
   end
 
-  def archive_selected_button(custom_class=nil)
+  def mute_selected_button
+    function_button('Mute selected', 'mute', 'mute_selected') unless params[:archive]
+  end
+
+  def mark_read_selected_button
+    function_button('Mark as read', 'eye', 'mark_read_selected')
+  end
+
+  def archive_selected_button
     action = params[:archive] ? 'unarchive' : 'archive'
-    button_tag(type: "button",
-               class: "archive_toggle #{action}_selected #{custom_class}") do
-      "#{action} selected".capitalize
+    function_button("#{action.capitalize} selected", 'checklist', "archive_toggle #{action}_selected")
+  end
+
+  def function_button(title, octicon, css_class)
+    button_tag(type: 'button', class: "#{css_class} btn btn-default hidden") do
+      octicon(octicon, height: 16) + content_tag(:span, " #{title}", class: 'hidden-xs')
     end
   end
 
@@ -67,5 +80,53 @@ module NotificationsHelper
 
   def reason_label(reason)
     REASON_LABELS.fetch(reason, 'default')
+  end
+
+  def filter_option(param, &block)
+    if filters[param].present?
+      link_to root_path(filters.except(param)), class: 'btn btn-default' do
+        concat octicon('x', :height => 16)
+        concat ' '
+        concat block.call
+      end
+    end
+  end
+
+  def filter_link(param, value, count, &block)
+    sidebar_filter_link(params[param] == value.to_s, param, value, count) do
+      block.call
+    end
+  end
+
+  def org_filter_link(param, value, count, &block)
+    sidebar_filter_link(params[param] == value.to_s, param, value, nil, :repo, 'owner-label') do
+      block.call
+    end
+  end
+
+  def repo_filter_link(param, value, count, &block)
+    active = params[param] == value || params[:owner] == value.split('/')[0]
+    sidebar_filter_link(active, param, value, count, :owner, 'repo-label') do
+      block.call
+    end
+  end
+
+  def sidebar_filter_link(active, param, value, count, except = nil, link_class = nil, &block)
+    content_tag :li, class: (active ? 'active' : '') do
+      active = (active && not_repo_in_active_org(param))
+      link_to root_path(filtered_params(param => (active ? nil : value)).except(except)), class: "filter #{link_class}" do
+        block.call
+        if active && not_repo_in_active_org(param)
+          concat content_tag(:span, octicon('x', :height => 16), class: 'label text-muted')
+        elsif count.present?
+          concat content_tag(:span, count, class: 'label label-muted')
+        end
+      end
+    end
+  end
+
+  def not_repo_in_active_org(param)
+    return true unless param == :repo
+    !params[:owner].present?
   end
 end

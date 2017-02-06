@@ -3,9 +3,6 @@ ruby '2.4.0'
 
 gem 'rails', '5.0.1'
 gem 'bootstrap-sass'
-gem 'dalli'
-gem 'faraday-http-cache'
-gem 'faraday_middleware'
 gem 'jquery-rails'
 gem 'kaminari'
 gem 'local_time', git: 'https://github.com/twalpole/local_time', branch: 'turbolinks5'
@@ -37,9 +34,10 @@ end
 
 group :development do
   gem 'web-console'
-  gem 'listen', '~> 3.0.5'
+  gem 'listen'
+  gem 'rubocop', require: false
   gem 'spring'
-  gem 'spring-watcher-listen', '~> 2.0.0'
+  gem 'spring-watcher-listen'
 end
 
 group :production do
@@ -47,4 +45,5 @@ group :production do
   gem 'lograge'
   gem 'rails_safe_tasks'
   gem 'bugsnag'
+  gem 'puma_worker_killer'
 end

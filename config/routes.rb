@@ -14,10 +14,14 @@ Rails.application.routes.draw do
     collection do
       post :archive_selected
       post :sync
+      post :mute_selected
+      post :mark_read_selected
+      get :unread_count
     end
 
     member do
       get :star
+      get :mark_read
     end
   end
 

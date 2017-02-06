@@ -4,7 +4,8 @@ require 'test_helper'
 class NotificationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     stub_notifications_request
-    @user = users(:andrew)
+    stub_contributors
+    @user = create(:user)
   end
 
   test 'will render the home page if not authenticated' do
@@ -68,6 +69,42 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     refute notification3.reload.archived?
   end
 
+  test 'mutes multiple notifications' do
+    sign_in_as(@user)
+    notification1 = create(:notification, user: @user, archived: false)
+    notification2 = create(:notification, user: @user, archived: false)
+    notification3 = create(:notification, user: @user, archived: false)
+    User.any_instance.stubs(:github_client).returns(mock {
+      expects(:update_thread_subscription).with(notification1.github_id, ignored: true).returns true
+      expects(:update_thread_subscription).with(notification2.github_id, ignored: true).returns true
+      expects(:mark_thread_as_read).with(notification1.github_id, read: true).returns true
+      expects(:mark_thread_as_read).with(notification2.github_id, read: true).returns true
+    })
+    post '/notifications/mute_selected', params: { id: [notification1.id, notification2.id] }
+    assert_response :ok
+
+    assert notification1.reload.archived?
+    assert notification2.reload.archived?
+    refute notification3.reload.archived?
+  end
+
+  test 'marks read multiple notifications' do
+    sign_in_as(@user)
+    notification1 = create(:notification, user: @user, archived: false)
+    notification2 = create(:notification, user: @user, archived: false)
+    notification3 = create(:notification, user: @user, archived: false)
+    User.any_instance.stubs(:github_client).returns(mock {
+      expects(:mark_thread_as_read).with(notification1.github_id, read: true).returns true
+      expects(:mark_thread_as_read).with(notification2.github_id, read: true).returns true
+    })
+    post '/notifications/mark_read_selected', params: { id: [notification1.id, notification2.id] }
+    assert_response :ok
+
+    refute notification1.reload.unread?
+    refute notification2.reload.unread?
+    assert notification3.reload.unread?
+  end
+
   test 'toggles starred on a notification' do
     notification = create(:notification, user: @user, starred: false)
 
@@ -77,6 +114,17 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
 
     assert notification.reload.starred?
+  end
+
+  test 'toggles unread on a notification' do
+    notification = create(:notification, user: @user, unread: true)
+
+    sign_in_as(@user)
+
+    get "/notifications/#{notification.id}/mark_read"
+    assert_response :ok
+
+    refute notification.reload.unread?
   end
 
   test 'syncs users notifications' do

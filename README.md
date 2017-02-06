@@ -15,187 +15,72 @@ Take back control of your GitHub Notifications with [Octobox]( https://octobox.i
 
 If you manage more than one active project on GitHub, you probably find [GitHub Notifications](https://github.com/notifications) pretty lacking.
 
-Notifications are marked as read and disappear from the list as soon as you load the page or view the email of the notification. This makes it very hard to keep on top of which notifications you still need to follow up on.
-
-Most open source maintainers and GitHub staff end up using a complex combination of filters and labels in Gmail to manage their notifications from their inbox. If, like me, you try to avoid email, then you might want something else.
+Notifications are marked as read and disappear from the list as soon as you load the page or view the email of the notification. This makes it very hard to keep on top of which notifications you still need to follow up on. Most open source maintainers and GitHub staff end up using a complex combination of filters and labels in Gmail to manage their notifications from their inbox. If, like me, you try to avoid email, then you might want something else.
 
 Octobox adds an extra "archived" state to each notification so you can mark it as "done". If new activity happens on the thread/issue/pr, the next time you sync the app the relevant item will be unarchived and moved back into your inbox.
 
-## What state is the project in right now?
+## Getting Started
 
-You can use [a hosted version](https://octobox.io) right now.
+### Octobox.io
 
-You could also host it yourself, in Heroku or otherwise.
+You can use Octobox right now at [octobox.io](https://octobox.io), a shared instance hosted by the Octobox team.
 
-Check out the open issues for a glimpse of the future: https://github.com/octobox/octobox/issues.
+**Note:** octobox.io has a few features intentionally disabled:
+
+* Auto refreshing of notifications page ([#200](https://github.com/octobox/octobox/pull/200))
+* Personal Access Tokens ([#185](https://github.com/octobox/octobox/pull/185))
+
+Features are disabled for various reasons, such as not wanting to store users' tokens at this time.
+
+### Installation
+
+You can also host Octobox yourself! See [the installation guide](https://github.com/octobox/octobox/blob/master/INSTALLATION.md)
+for installation instructions and details regarding deployment to Heroku, Docker, and more.
+
+### Desktop usage
+
+You can run Octobox locally as a desktop app too if you'd like, using [Nativefier](https://www.npmjs.com/package/nativefier):
+
+```bash
+npm install -g nativefier
+nativefier "https://octobox.io" # Or your own self-hosted URL
+```
+
+This will build a local application (.exe, .app, etc) and put it in your current folder, ready to use.
 
 ## Requirements
 
-Web notifications must be enabled in your GitHub settings for Octobox to work: https://github.com/settings/notifications
+[Web notifications](https://github.com/settings/notifications) must be enabled in your GitHub settings for Octobox to work.
 
 <img width="757" alt="Notifications settings screen" src="https://cloud.githubusercontent.com/assets/1060/21509954/3a01794c-cc86-11e6-9bbc-9b33b55f85d1.png">
 
+## Keyboard shortcuts
 
-## Deployment to Heroku
+You can use keyboard shortcuts to navigate and perform certain actions:
 
-You can host your own instance of Octobox using Heroku. Heroku will ask you to provide a 'personal access token' which you can create on GitHub. When creating it, make sure you enable the notifications scope on it.
+ - `a` - Select/deselect all
+ - `r` or `.` - Refresh list
+ - `j` - Move down the list
+ - `k` - Move up the list
+ - `s` - Star current notification
+ - `x` - Mark/unmark current notification
+ - `y` or `e` - Archive current/marked notification(s)
+ - `m` - Mute current/marked notification(s)
+ - `d` - Mark current/marked notification(s) as read here and on GitHub
+ - `o` or `Enter` - Open current notification in a new window
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+Press `?` for the help menu.
 
-## Running Octobox for [GitHub Enterprise](https://enterprise.github.com/home)
-In order to setup Octobox for your GitHub Enterprise instance all you need you do is add your enterprise domain to the `.env` file / deployed environment.
+## Alternatives
 
-Example:
-
-```
-GITHUB_DOMAIN=https://github.foobar.com
-```
-
-And that's it :sparkles:
-
-## Using Personal Access Tokens
-Octobox can optionally allow you to set a personal access token to use when querying for notifications.  This must be enabled
-at the server level.  In order to enable it, add the environment variable `PERSONAL_ACCESS_TOKENS_ENABLED` to the `.env` file / deployed environment.
-
-Example:
-
-```bash
-PERSONAL_ACCESS_TOKENS_ENABLED=1
-```
-
-Once that is set, users can set a personal access token on the Settings page (found on the user drop-down menu).
+- [LaraGit](https://github.com/m1guelpf/laragit) - PHP rewrite
+- [octobox.js](https://github.com/doowb/octobox.js) - JavaScript rewrite
 
 ## Development
 
 The source code is hosted at [GitHub](https://github.com/octobox/octobox).
 You can report issues/feature requests on [GitHub Issues](https://github.com/octobox/octobox/issues).
 For other updates, follow me on Twitter: [@teabass](https://twitter.com/teabass).
-
-### Getting Started
-
-New to Ruby? No worries! You can follow these instructions to install a local server, or you can use the included [Vagrant](https://www.vagrantup.com/docs/why-vagrant/) setup.
-
-Prefer PHP? We got you covered! There is a *(work-in-progress)* PHP version called [LaraGit](https://github.com/m1guelpf/laragit).
-
-#### Installing a Local Server
-
-First things first, you'll need to install Ruby 2.4.0. I recommend using the excellent [rbenv](https://github.com/rbenv/rbenv),
-and [ruby-build](https://github.com/rbenv/ruby-build):
-
-```bash
-brew install rbenv ruby-build
-rbenv install 2.4.0
-rbenv global 2.4.0
-```
-
-Next, you'll need to make sure that you have PostgreSQL installed. This can be
-done easily on OSX using [Homebrew](http://mxcl.github.io/homebrew/) or by using [http://postgresapp.com](http://postgresapp.com). Please see these [further instructions for installing Postgres via Homebrew](http://www.mikeball.us/blog/setting-up-postgres-with-homebrew/).
-
-```bash
-brew install postgres
-```
-
-On Debian-based Linux distributions you can use apt-get to install Postgres:
-
-```bash
-sudo apt-get install postgresql postgresql-contrib libpq-dev
-```
-
-Now, let's install the gems from the `Gemfile` ("Gems" are synonymous with libraries in other
-languages):
-
-```bash
-gem install bundler && rbenv rehash
-bundle install
-```
-
-Once all the gems are installed, we'll need to create the databases and
-tables. Rails makes this easy through the use of "Rake" tasks:
-
-```bash
-bundle exec rake db:create db:migrate
-```
-
-Now go and register a new [GitHub OAuth Application](https://github.com/settings/applications/new), your development configuration should look something like this:
-
-<img width="561" alt="screen shot 2016-12-18 at 21 54 35" src="https://cloud.githubusercontent.com/assets/564113/21299762/a7bfaace-c56c-11e6-834c-ff893f79cec3.png">
-
-If you're deploying this to production, just replace `http://localhost:3000` with your applications URL.
-
-Once you've created your application you can then then add the following to your `.env`:
-
-```
-GITHUB_CLIENT_ID=yourclientidhere
-GITHUB_CLIENT_SECRET=yourclientsecrethere
-```
-
-Finally you can boot the rails app:
-
-```bash
-rails s
-```
-#### Docker
-
-You can use Docker to run Octobox in development.
-
-First, [install Docker](https://docs.docker.com/engine/installation/). If you've got run macOS or Windows, Docker for Mac/Windows makes this really easy.
-
-Then, run:
-
-```bash
-GITHUB_CLIENT_ID=yourclientid GITHUB_CLIENT_SECRET=yourclientsecret docker-compose up --build
-```
-
-Octobox will be running on [http://localhost:3000](http://localhost:3000).
-
-**Note**: You can add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to a `.env` file instead of supplying them directly on the command-line.
-
-### Sync notifications automatically
-
-Now that you've set all to go you can configure the app to sync the notifications automatically, there is a rake task that will do this for every user
-
-```
-rake tasks:sync_notifications
-```
-
-You will need to configure this to run automatically
-
-#### Heroku
-
-Create a Heroku Scheduler
-
-```
-heroku addons:create scheduler:standard
-```
-
-Visit the Heroku Scheduler resource and add a new job to run `rake tasks:sync_notifications` daily
-
-#### Cronjob
-
-Run `crontab -e`
-
-Add the following
-
-```
-@daily cd octobox_path && /usr/local/bin/rake RAILS_ENV=production tasks:sync_notifications
-```
-
-To find the full path for your rake executable, run `which rake`
-
-### Keyboard shortcuts
-
-You can use keyboard shortcuts to navigate and perform certain actions:
-
- - `a` - Select/deselect all
- - `r` or `.` - refresh list
- - `j` - move down the list
- - `k` - move up the list
- - `s` - star current notification
- - `x` - mark/unmark current notification
- - `y` - archive current/marked notification(s)
- - `o` or `Enter` - open current notification in a new window
-
-Press `?` for the help menu.
 
 ### Note on Patches/Pull Requests
 
@@ -210,4 +95,4 @@ Please note that this project is released with a [Contributor Code of Conduct](C
 
 ## Copyright
 
-Copyright (c) 2017 Andrew Nesbitt. See [LICENSE](https://github.com/octobox/octobox/blob/master/LICENSE.txt) for details.
+Copyright (c) 2017 [Andrew Nesbitt](https://github.com/andrew). See [the licence](https://github.com/octobox/octobox/blob/master/LICENSE.txt) for details.

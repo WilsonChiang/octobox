@@ -27,68 +27,59 @@ class Notification < ApplicationRecord
   paginates_per 20
 
   class << self
-    def download(user)
-      timestamp = Time.current
-
-      fetch_notifications(user) do |notification|
-        begin
-          n = user.notifications.find_or_initialize_by(github_id: notification.id)
-
-          if n.archived && n.updated_at < notification.updated_at
-            n.archived = false
-          end
-
-          attrs = {}.tap do |attr|
-            attr[:repository_id]         = notification.repository.id
-            attr[:repository_full_name]  = notification.repository.full_name
-            attr[:repository_owner_name] = notification.repository.owner.login
-            attr[:subject_title]         = notification.subject.title
-            attr[:subject_type]          = notification.subject.type
-            attr[:reason]                = notification.reason
-            attr[:unread]                = notification.unread
-            attr[:updated_at]            = notification.updated_at
-            attr[:last_read_at]          = notification.last_read_at
-            attr[:url]                   = notification.url
-
-            attr[:subject_url] = if notification.subject.type == "RepositoryInvitation"
-                                   "#{notification.repository.html_url}/invitations"
-                                 else
-                                   notification.subject.url
-                                 end
-          end
-
-          n.attributes = attrs
-          n.save(touch: false) if n.changed?
-        rescue ActiveRecord::RecordNotUnique
-          nil
-        end
+    def attributes_from_api_response(api_response)
+      attrs = DownloadService::API_ATTRIBUTE_MAP.map do |attr, path|
+        [attr, api_response.to_h.dig(*path)]
+      end.to_h
+      if "RepositoryInvitation" == api_response.subject.type
+        attrs[:subject_url] = "#{api_response.repository.html_url}/invitations"
       end
-
-      user.update_column(:last_synced_at, timestamp)
+      attrs
     end
+  end
 
-    private
+  def mark_read(update_github: false)
+    self[:unread] = false
+    save(touch: false) if changed?
 
-    def fetch_notifications(user)
-      user.github_client.notifications(fetch_params(user)).each { |n| yield n }
+    if update_github
+      user.github_client.mark_thread_as_read(github_id, read: true)
     end
+  end
 
-    def fetch_params(user)
-      if user.last_synced_at?
-        { all: true, since: 1.week.ago.iso8601 }
-      else
-        { all: true, since: 1.month.ago.iso8601 }
-      end
-    end
+  def ignore_thread
+    user.github_client.update_thread_subscription(github_id, ignored: true)
+  end
+
+  def mute
+    mark_read(update_github: true)
+    ignore_thread
   end
 
   def web_url
-    subject_url.gsub("#{Octobox.github_api_prefix}/repos", Octobox.github_domain)
+    subject_url.gsub("#{Octobox.config.github_api_prefix}/repos", Octobox.config.github_domain)
                .gsub('/pulls/', '/pull/')
                .gsub('/commits/', '/commit/')
+               .gsub(/\/releases\/\d+/, '/releases/')
   end
 
   def repo_url
-    "#{Octobox.github_domain}/#{repository_full_name}"
+    "#{Octobox.config.github_domain}/#{repository_full_name}"
+  end
+
+  def unarchive_if_updated
+    return unless self.archived?
+    change = changes['updated_at']
+    return unless change
+    if self.archived && change[1] > change[0]
+      self.archived = false
+    end
+  end
+
+  def update_from_api_response(api_response, unarchive: false)
+    attrs = Notification.attributes_from_api_response(api_response)
+    self.attributes = attrs
+    unarchive_if_updated if unarchive
+    save(touch: false) if changed?
   end
 end
